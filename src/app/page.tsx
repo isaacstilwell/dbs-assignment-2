@@ -19,7 +19,7 @@ import type { Task, TaskStatus } from '@/types'
 
 export default function Home() {
   const { tasks, updateTask } = useTaskStore()
-  const { addToDay, removeFromDay, moveBetweenDays } = usePlannerStore()
+  const { moveToDay, removeFromDay } = usePlannerStore()
 
   const [modalTask, setModalTask] = useState<Task | null | undefined>(undefined)
   // undefined = closed, null = create mode, Task = edit mode
@@ -66,8 +66,7 @@ export default function Home() {
       if (!task) return
 
       if (overData?.type === 'day') {
-        // Database card → planner day
-        addToDay(overData.dayKey as string, taskId)
+        moveToDay(overData.dayKey as string, taskId)
         return
       }
 
@@ -91,16 +90,13 @@ export default function Home() {
 
       if (overData?.type === 'day') {
         const toDay = overData.dayKey as string
-        if (toDay === fromDay) return
-        moveBetweenDays(fromDay, toDay, taskId)
+        if (toDay !== fromDay) moveToDay(toDay, taskId)
         return
       }
 
       if (overData?.type === 'planner-chip') {
         const toDay = overData.dayKey as string
-        if (toDay !== fromDay) {
-          moveBetweenDays(fromDay, toDay, taskId)
-        }
+        if (toDay !== fromDay) moveToDay(toDay, taskId)
         return
       }
 

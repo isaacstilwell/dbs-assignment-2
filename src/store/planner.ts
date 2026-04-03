@@ -8,6 +8,7 @@ interface PlannerStore {
   planner: PlannerData
 
   addToDay: (dayKey: string, taskId: string) => void
+  moveToDay: (dayKey: string, taskId: string) => void
   removeFromDay: (dayKey: string, taskId: string) => void
   moveWithinDay: (dayKey: string, fromIndex: number, toIndex: number) => void
   moveBetweenDays: (fromDay: string, toDay: string, taskId: string) => void
@@ -29,6 +30,18 @@ export const usePlannerStore = create<PlannerStore>()(
               [dayKey]: [...existing, taskId],
             },
           }
+        })
+      },
+
+      moveToDay: (dayKey, taskId) => {
+        set((state) => {
+          // Remove from every day, then add to target
+          const newPlanner: PlannerData = {}
+          for (const key of Object.keys(state.planner)) {
+            newPlanner[key] = state.planner[key].filter((id) => id !== taskId)
+          }
+          newPlanner[dayKey] = [...(newPlanner[dayKey] ?? []), taskId]
+          return { planner: newPlanner }
         })
       },
 

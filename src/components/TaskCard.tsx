@@ -60,7 +60,7 @@ export default function TaskCard({ task, onEdit, isDragging }: TaskCardProps) {
 
         {/* Title */}
         <span
-          className={`flex-1 text-sm leading-snug ${
+          className={`flex-1 text-sm leading-snug mt-0.5 ${
             isDone ? 'line-through opacity-40' : ''
           }`}
         >
@@ -74,7 +74,7 @@ export default function TaskCard({ task, onEdit, isDragging }: TaskCardProps) {
             e.stopPropagation()
             onEdit(task)
           }}
-          className="opacity-0 group-hover:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent-bright)] text-base transition-opacity shrink-0 px-1 cursor-pointer"
+          className="opacity-0 group-hover:opacity-100 text-[var(--text-dim)] hover:underline text-base shrink-0 px-1 cursor-pointer"
           aria-label="Edit task"
         >
           ✎

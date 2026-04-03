@@ -34,18 +34,18 @@ export default function PlannerTaskChip({ taskId, dayKey, onEdit }: PlannerTaskC
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-1 border border-[var(--border-dim)] hover:border-[var(--accent)] bg-[var(--card-bg)] px-2 py-1 group transition-colors cursor-grab"
+      className="flex items-center gap-2 border border-[var(--border-dim)] hover:border-[var(--accent)] bg-[var(--card-bg)] px-2 py-2.5 group transition-colors"
     >
       <span
         {...attributes}
         {...listeners}
-        className="text-[var(--text-dim)] text-[9px] shrink-0 select-none"
+        className="text-[var(--text-dim)] text-base shrink-0 select-none leading-none cursor-grab"
       >
         ⠿
       </span>
       <span
         onClick={() => onEdit(taskId)}
-        className={`flex-1 text-[10px] leading-tight truncate cursor-pointer hover:text-[var(--accent-bright)] transition-colors ${
+        className={`flex-1 text-xs leading-tight truncate cursor-pointer hover:underline mt-0.5 ${
           isDone ? 'line-through opacity-40' : ''
         }`}
       >
@@ -54,7 +54,7 @@ export default function PlannerTaskChip({ taskId, dayKey, onEdit }: PlannerTaskC
       <button
         onPointerDown={(e) => e.stopPropagation()}
         onClick={() => removeFromDay(dayKey, taskId)}
-        className="opacity-0 group-hover:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] text-xs transition-opacity shrink-0"
+        className="opacity-0 group-hover:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] hover:underline text-xl leading-none shrink-0 cursor-pointer flex items-center -translate-y-1"
         aria-label="Remove from planner"
       >
         ×
