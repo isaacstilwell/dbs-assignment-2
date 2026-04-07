@@ -12,7 +12,7 @@ interface PlannerTaskChipProps {
 }
 
 export default function PlannerTaskChip({ taskId, dayKey, onEdit }: PlannerTaskChipProps) {
-  const { tasks, updateTask } = useTaskStore()
+  const { tasks, updateTask, updateSubtask, subtasks: allSubtasks } = useTaskStore()
   const { removeFromDay } = usePlannerStore()
   const task = tasks[taskId]
 
@@ -29,43 +29,68 @@ export default function PlannerTaskChip({ taskId, dayKey, onEdit }: PlannerTaskC
   if (!task) return null
 
   const isDone = task.status === 'done'
+  const taskSubtasks = task.subtaskIds.map((id) => allSubtasks[id]).filter(Boolean)
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 border border-[var(--border-dim)] hover:border-[var(--accent)] bg-[var(--card-bg)] px-2 py-2.5 group transition-colors"
+      className="flex flex-col border border-[var(--border-dim)] hover:border-[var(--accent)] bg-[var(--card-bg)] px-2 py-2.5 group transition-colors"
     >
-      <span
-        {...attributes}
-        {...listeners}
-        className="text-[var(--text-dim)] text-base shrink-0 select-none leading-none cursor-grab"
-      >
-        ⠿
-      </span>
-      <span
-        onClick={() => onEdit(taskId)}
-        className="flex-1 text-xs leading-tight truncate cursor-pointer hover:underline mt-0.5"
-      >
-        <span className={isDone ? 'struck opacity-40' : ''}>{task.title}</span>
-      </span>
-      <button
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={() => removeFromDay(dayKey, taskId)}
-        className="opacity-0 group-hover:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] hover:underline text-xl leading-none shrink-0 cursor-pointer flex items-center -translate-y-1"
-        aria-label="Remove from planner"
-      >
-        ×
-      </button>
-      <button
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={() => updateTask(taskId, { status: isDone ? 'todo' : 'done' })}
-        className={`w-3 h-3 border border-[var(--accent)] shrink-0 flex items-center justify-center cursor-pointer transition-colors ${isDone ? 'bg-[var(--accent)] hover:opacity-60' : 'hover:bg-[var(--accent)]'}`}
-        style={{ minWidth: '12px' }}
-        aria-label={isDone ? 'Mark incomplete' : 'Mark done'}
-      >
-        {isDone && <span className="text-black text-[8px] leading-none">×</span>}
-      </button>
+      {/* Main row: drag handle | title | × | checkbox */}
+      <div className="flex items-center gap-2">
+        <span
+          {...attributes}
+          {...listeners}
+          className="text-[var(--text-dim)] text-base shrink-0 select-none leading-none cursor-grab mt-0.5"
+        >
+          ⠿
+        </span>
+        <span
+          onClick={() => onEdit(taskId)}
+          className="flex-1 text-xs leading-tight truncate cursor-pointer hover:underline mt-0.5"
+        >
+          <span className={isDone ? 'struck opacity-40' : ''}>{task.title}</span>
+        </span>
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => removeFromDay(dayKey, taskId)}
+          className="opacity-0 group-hover:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] hover:underline text-xl leading-none shrink-0 cursor-pointer flex items-center -translate-y-1"
+          aria-label="Remove from planner"
+        >
+          ×
+        </button>
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => updateTask(taskId, { status: isDone ? 'todo' : 'done' })}
+          className={`w-3 h-3 border border-[var(--accent)] shrink-0 flex items-center justify-center cursor-pointer transition-colors ${isDone ? 'bg-[var(--accent)] hover:opacity-60' : 'hover:bg-[var(--accent)]'}`}
+          style={{ minWidth: '12px' }}
+          aria-label={isDone ? 'Mark incomplete' : 'Mark done'}
+        >
+          {isDone && <span className="text-black text-[8px] leading-none">×</span>}
+        </button>
+      </div>
+
+      {/* Subtask rows: spacer | title | checkbox */}
+      {taskSubtasks.map((sub) => (
+        <div key={sub.id} className="flex items-center gap-2 mt-1">
+          {/* Spacer matching drag handle width */}
+          <span className="text-base shrink-0 invisible select-none leading-none">⠿</span>
+          <span className="text-[var(--text-dim)] text-[10px] shrink-0">└</span>
+          <span className="flex-1 text-[10px] leading-tight truncate mt-0.5">
+            <span className={sub.done ? 'struck opacity-40' : 'opacity-60'}>{sub.title}</span>
+          </span>
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => updateSubtask(sub.id, { done: !sub.done })}
+            className={`w-2.5 h-2.5 border border-[var(--accent)] shrink-0 flex items-center justify-center cursor-pointer transition-colors ${sub.done ? 'bg-[var(--accent)] hover:opacity-60' : 'hover:bg-[var(--accent)]'}`}
+            style={{ minWidth: '10px' }}
+            aria-label={sub.done ? 'Mark incomplete' : 'Mark complete'}
+          >
+            {sub.done && <span className="text-black leading-none" style={{ fontSize: '6px' }}>×</span>}
+          </button>
+        </div>
+      ))}
     </div>
   )
 }
