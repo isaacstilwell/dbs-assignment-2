@@ -17,13 +17,15 @@ interface TaskModalProps {
 }
 
 export default function TaskModal({ task, onClose }: TaskModalProps) {
-  const { addTask, updateTask, deleteTask, addSubtask, subtasks: allSubtasks } = useTaskStore()
+  const { addTask, updateTask, deleteTask, addSubtask, updateSubtask, deleteSubtask, tasks, subtasks: allSubtasks } = useTaskStore()
 
   const [title, setTitle] = useState(task?.title ?? '')
   const [status, setStatus] = useState<TaskStatus>(task?.status ?? 'todo')
   const [dueDate, setDueDate] = useState(task?.dueDate ?? '')
   const [notes, setNotes] = useState(task?.notes ?? '')
   const [newSubtask, setNewSubtask] = useState('')
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null)
+  const [editingSubtaskTitle, setEditingSubtaskTitle] = useState('')
 
   const titleRef = useRef<HTMLInputElement>(null)
 
@@ -40,8 +42,9 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
-  const taskSubtasks = task
-    ? task.subtaskIds.map((id) => allSubtasks[id]).filter(Boolean)
+  const liveTask = task ? tasks[task.id] : null
+  const taskSubtasks = liveTask
+    ? liveTask.subtaskIds.map((id) => allSubtasks[id]).filter(Boolean)
     : []
 
   function handleSave() {
@@ -93,7 +96,7 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
           </span>
           <button
             onClick={onClose}
-            className="text-[var(--text-dim)] hover:text-[var(--accent)] text-lg leading-none transition-colors"
+            className="text-[var(--text-dim)] hover:text-[var(--accent)] text-lg leading-none transition-colors cursor-pointer"
             aria-label="Close"
           >
             ×
@@ -123,7 +126,7 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
                   <button
                     key={s}
                     onClick={() => setStatus(s)}
-                    className={`text-[10px] tracking-wider px-2 py-1 border transition-colors ${
+                    className={`text-[10px] tracking-wider px-2 py-1 border transition-colors cursor-pointer ${
                       status === s
                         ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--card-bg)]'
                         : 'border-[var(--border-dim)] text-[var(--text-dim)] hover:border-[var(--accent)]'
@@ -141,7 +144,7 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="border-b border-[var(--border-dim)] focus:border-[var(--accent)] bg-transparent py-1 text-sm transition-colors w-full"
+                className="border-b border-[var(--border-dim)] focus:border-[var(--accent)] bg-transparent py-1 text-sm transition-colors w-full cursor-text"
                 style={{ colorScheme: 'dark' }}
               />
             </div>
@@ -167,12 +170,64 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
                 {taskSubtasks.map((sub) => (
                   <div
                     key={sub.id}
-                    className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--border-dim)] last:border-b-0"
+                    className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--border-dim)] last:border-b-0 group/sub"
                   >
                     <span className="text-[var(--text-dim)] text-xs">└</span>
-                    <span className={`flex-1 text-xs ${sub.done ? 'line-through opacity-40' : ''}`}>
-                      {sub.title}
-                    </span>
+                    {editingSubtaskId === sub.id ? (
+                      <>
+                        <input
+                          autoFocus
+                          value={editingSubtaskTitle}
+                          onChange={(e) => setEditingSubtaskTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              if (editingSubtaskTitle.trim()) updateSubtask(sub.id, { title: editingSubtaskTitle.trim() })
+                              setEditingSubtaskId(null)
+                            }
+                            if (e.key === 'Escape') setEditingSubtaskId(null)
+                          }}
+                          onBlur={() => {
+                            if (editingSubtaskTitle.trim()) updateSubtask(sub.id, { title: editingSubtaskTitle.trim() })
+                            setEditingSubtaskId(null)
+                          }}
+                          className="flex-1 bg-transparent text-xs border-b border-[var(--accent)] cursor-text"
+                        />
+                        <button
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            if (editingSubtaskTitle.trim()) updateSubtask(sub.id, { title: editingSubtaskTitle.trim() })
+                            setEditingSubtaskId(null)
+                          }}
+                          className="text-[var(--accent)] hover:underline text-xs leading-none cursor-pointer shrink-0"
+                          aria-label="Save subtask"
+                        >
+                          ✓
+                        </button>
+                      </>
+                    ) : (
+                      <span className="flex-1 text-xs">
+                        <span className={sub.done ? 'struck opacity-40' : ''}>{sub.title}</span>
+                      </span>
+                    )}
+                    {editingSubtaskId !== sub.id && (
+                      <button
+                        onClick={() => { setEditingSubtaskId(sub.id); setEditingSubtaskTitle(sub.title) }}
+                        className="opacity-0 group-hover/sub:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] hover:underline text-xs leading-none cursor-pointer"
+                        aria-label="Edit subtask"
+                      >
+                        ✎
+                      </button>
+                    )}
+                    {editingSubtaskId !== sub.id && (
+                      <button
+                        onClick={() => deleteSubtask(sub.id)}
+                        className="opacity-0 group-hover/sub:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] hover:underline text-base leading-none cursor-pointer"
+                        aria-label="Delete subtask"
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
                 ))}
                 {/* Add subtask input */}
@@ -190,7 +245,7 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
                   {newSubtask.trim() && (
                     <button
                       onClick={handleAddSubtask}
-                      className="text-[10px] text-[var(--accent)] hover:text-[var(--accent-bright)] transition-colors"
+                      className="text-[10px] text-[var(--accent)] hover:underline cursor-pointer"
                     >
                       ADD
                     </button>
@@ -205,7 +260,7 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
             {task ? (
               <button
                 onClick={handleDelete}
-                className="text-[10px] tracking-wider text-[var(--text-dim)] hover:text-red-400 transition-colors"
+                className="text-[10px] tracking-wider text-[var(--text-dim)] hover:text-red-400 cursor-pointer"
               >
                 DELETE
               </button>
@@ -215,14 +270,14 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
             <div className="flex gap-3">
               <button
                 onClick={onClose}
-                className="text-[10px] tracking-wider text-[var(--text-dim)] hover:text-[var(--accent)] transition-colors"
+                className="text-[10px] tracking-wider text-[var(--text-dim)] hover:text-[var(--accent)] cursor-pointer"
               >
                 CANCEL
               </button>
               <button
                 onClick={handleSave}
                 disabled={!title.trim()}
-                className="text-[10px] tracking-wider px-3 py-1.5 border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--card-bg)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="text-[10px] tracking-wider px-3 py-1.5 border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--card-bg)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
                 SAVE
               </button>

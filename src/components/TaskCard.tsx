@@ -59,12 +59,8 @@ export default function TaskCard({ task, onEdit, isDragging }: TaskCardProps) {
         <span className="text-[var(--text-dim)] text-base shrink-0 select-none">⠿</span>
 
         {/* Title */}
-        <span
-          className={`flex-1 text-sm leading-snug mt-0.5 ${
-            isDone ? 'line-through opacity-40' : ''
-          }`}
-        >
-          {task.title}
+        <span className="flex-1 text-sm leading-snug mt-0.5">
+          <span className={isDone ? 'struck opacity-40' : ''}>{task.title}</span>
         </span>
 
         {/* Edit button */}
@@ -94,7 +90,7 @@ export default function TaskCard({ task, onEdit, isDragging }: TaskCardProps) {
         {taskSubtasks.length > 0 && (
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="text-[var(--text-dim)] hover:text-[var(--accent)] text-[10px] transition-colors"
+            className="text-[var(--text-dim)] hover:text-[var(--accent)] text-[10px] transition-colors cursor-pointer"
           >
             {expanded ? '▼' : '▶'} {doneCount}/{taskSubtasks.length} subtasks
           </button>

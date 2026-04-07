@@ -15,7 +15,7 @@ export default function SubtaskRow({ subtask }: SubtaskRowProps) {
       <span className="text-[var(--text-dim)] text-xs shrink-0">└</span>
       <button
         onClick={() => updateSubtask(subtask.id, { done: !subtask.done })}
-        className="w-3 h-3 border border-[var(--accent)] shrink-0 flex items-center justify-center hover:bg-[var(--accent)] transition-colors"
+        className={`w-3 h-3 border border-[var(--accent)] shrink-0 flex items-center justify-center cursor-pointer transition-colors ${subtask.done ? 'bg-[var(--accent)] hover:opacity-60' : 'hover:bg-[var(--accent)]'}`}
         style={{ minWidth: '12px' }}
         aria-label={subtask.done ? 'Mark incomplete' : 'Mark complete'}
       >
@@ -24,15 +24,13 @@ export default function SubtaskRow({ subtask }: SubtaskRowProps) {
         )}
       </button>
       <span
-        className={`text-xs flex-1 leading-tight ${
-          subtask.done ? 'line-through opacity-40' : ''
-        }`}
+        className="text-xs flex-1 leading-tight"
       >
-        {subtask.title}
+        <span className={subtask.done ? 'struck opacity-40' : ''}>{subtask.title}</span>
       </span>
       <button
         onClick={() => deleteSubtask(subtask.id)}
-        className="opacity-0 group-hover:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] text-xs transition-opacity px-1"
+        className="opacity-0 group-hover:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] text-xs transition-opacity px-1 cursor-pointer"
         aria-label="Delete subtask"
       >
         ×

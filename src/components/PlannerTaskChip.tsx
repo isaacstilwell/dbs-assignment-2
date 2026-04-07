@@ -12,7 +12,7 @@ interface PlannerTaskChipProps {
 }
 
 export default function PlannerTaskChip({ taskId, dayKey, onEdit }: PlannerTaskChipProps) {
-  const { tasks } = useTaskStore()
+  const { tasks, updateTask } = useTaskStore()
   const { removeFromDay } = usePlannerStore()
   const task = tasks[taskId]
 
@@ -45,11 +45,9 @@ export default function PlannerTaskChip({ taskId, dayKey, onEdit }: PlannerTaskC
       </span>
       <span
         onClick={() => onEdit(taskId)}
-        className={`flex-1 text-xs leading-tight truncate cursor-pointer hover:underline mt-0.5 ${
-          isDone ? 'line-through opacity-40' : ''
-        }`}
+        className="flex-1 text-xs leading-tight truncate cursor-pointer hover:underline mt-0.5"
       >
-        {task.title}
+        <span className={isDone ? 'struck opacity-40' : ''}>{task.title}</span>
       </span>
       <button
         onPointerDown={(e) => e.stopPropagation()}
@@ -58,6 +56,15 @@ export default function PlannerTaskChip({ taskId, dayKey, onEdit }: PlannerTaskC
         aria-label="Remove from planner"
       >
         ×
+      </button>
+      <button
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={() => updateTask(taskId, { status: isDone ? 'todo' : 'done' })}
+        className={`w-3 h-3 border border-[var(--accent)] shrink-0 flex items-center justify-center cursor-pointer transition-colors ${isDone ? 'bg-[var(--accent)] hover:opacity-60' : 'hover:bg-[var(--accent)]'}`}
+        style={{ minWidth: '12px' }}
+        aria-label={isDone ? 'Mark incomplete' : 'Mark done'}
+      >
+        {isDone && <span className="text-black text-[8px] leading-none">×</span>}
       </button>
     </div>
   )
