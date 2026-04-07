@@ -7,6 +7,7 @@ import { useTaskStore } from '@/store/tasks'
 import SubtaskRow from './SubtaskRow'
 import type { Task } from '@/types'
 import { formatDueDate } from '@/lib/dates'
+import { EditIcon } from './icons'
 
 interface TaskCardProps {
   task: Task
@@ -47,16 +48,16 @@ export default function TaskCard({ task, onEdit, isDragging }: TaskCardProps) {
       style={style}
       className={`border border-[var(--border)] bg-[var(--card-bg)] group transition-all duration-150 ${
         isDragging ? 'shadow-[0_0_12px_rgba(109,189,175,0.4)]' : ''
-      } ${isSortableDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+      }`}
     >
       {/* Card header — drag handle + title + edit */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="flex items-center gap-2 px-3 pt-3 pb-2"
-      >
+      <div className="flex items-center gap-2 px-3 pt-3 pb-2">
         {/* Drag grip */}
-        <span className="text-[var(--text-dim)] text-base shrink-0 select-none">⠿</span>
+        <span
+          {...attributes}
+          {...listeners}
+          className={`text-[var(--text-dim)] text-base shrink-0 select-none ${isSortableDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        >⠿</span>
 
         {/* Title */}
         <span className="flex-1 text-sm leading-snug mt-0.5">
@@ -70,10 +71,10 @@ export default function TaskCard({ task, onEdit, isDragging }: TaskCardProps) {
             e.stopPropagation()
             onEdit(task)
           }}
-          className="opacity-0 group-hover:opacity-100 text-[var(--text-dim)] hover:underline text-base shrink-0 px-1 cursor-pointer"
+          className="opacity-0 group-hover:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] shrink-0 px-1 cursor-pointer flex items-center justify-center"
           aria-label="Edit task"
         >
-          ✎
+          <EditIcon size={12} />
         </button>
       </div>
 

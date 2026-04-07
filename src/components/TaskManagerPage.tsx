@@ -6,6 +6,7 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
   type DragStartEvent,
@@ -25,7 +26,7 @@ interface TaskManagerPageProps {
 export default function TaskManagerPage({ initialModal }: TaskManagerPageProps) {
   const router = useRouter()
   const { tasks, updateTask } = useTaskStore()
-  const { moveToDay, removeFromDay } = usePlannerStore()
+  const { addTaskToDay, addSubtaskToDay, moveEntryToDay, removeFromDay } = usePlannerStore()
 
   const [modalTask, setModalTask] = useState<Task | null | undefined>(
     initialModal === 'new' ? null : undefined
@@ -57,6 +58,9 @@ export default function TaskManagerPage({ initialModal }: TaskManagerPageProps) 
     } else if (data.current?.type === 'planner-chip') {
       const t = tasks[data.current.taskId as string]
       setActiveTask(t ?? null)
+    } else if (data.current?.type === 'subtask') {
+      const t = tasks[data.current.taskId as string]
+      setActiveTask(t ?? null)
     }
   }
 
@@ -75,7 +79,7 @@ export default function TaskManagerPage({ initialModal }: TaskManagerPageProps) 
       if (!task) return
 
       if (overData?.type === 'day') {
-        moveToDay(overData.dayKey as string, taskId)
+        addTaskToDay(overData.dayKey as string, taskId)
         return
       }
 
@@ -92,20 +96,39 @@ export default function TaskManagerPage({ initialModal }: TaskManagerPageProps) 
       return
     }
 
+    // ── Subtask dragged from database ──
+    if (activeData?.type === 'subtask') {
+      const { subtaskId, taskId } = activeData as { subtaskId: string; taskId: string }
+      if (overData?.type === 'day') {
+        addSubtaskToDay(
+          overData.dayKey as string,
+          taskId,
+          subtaskId,
+          tasks[taskId]?.subtaskIds ?? []
+        )
+      }
+      return
+    }
+
     // ── Planner chip moved ──
     if (activeData?.type === 'planner-chip') {
       const taskId = activeData.taskId as string
       const fromDay = activeData.dayKey as string
+      const chipSubtaskIds = activeData.subtaskIds as string[] | null
 
       if (overData?.type === 'day') {
         const toDay = overData.dayKey as string
-        if (toDay !== fromDay) moveToDay(toDay, taskId)
+        if (toDay !== fromDay) {
+          moveEntryToDay(fromDay, toDay, taskId, chipSubtaskIds, tasks[taskId]?.subtaskIds ?? [])
+        }
         return
       }
 
       if (overData?.type === 'planner-chip') {
         const toDay = overData.dayKey as string
-        if (toDay !== fromDay) moveToDay(toDay, taskId)
+        if (toDay !== fromDay) {
+          moveEntryToDay(fromDay, toDay, taskId, chipSubtaskIds, tasks[taskId]?.subtaskIds ?? [])
+        }
         return
       }
 
@@ -121,6 +144,7 @@ export default function TaskManagerPage({ initialModal }: TaskManagerPageProps) 
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >

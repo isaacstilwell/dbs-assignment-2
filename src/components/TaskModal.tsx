@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTaskStore } from '@/store/tasks'
 import type { Task, TaskStatus } from '@/types'
+import { XIcon, EditIcon } from './icons'
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
   todo: 'TO DO',
@@ -96,10 +97,10 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
           </span>
           <button
             onClick={onClose}
-            className="text-[var(--text-dim)] hover:text-[var(--accent)] text-lg leading-none transition-colors cursor-pointer"
+            className="text-[var(--text-dim)] hover:text-[var(--accent)] leading-none transition-colors cursor-pointer flex items-center justify-center"
             aria-label="Close"
           >
-            ×
+            <XIcon size={12} />
           </button>
         </div>
 
@@ -213,19 +214,19 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
                     {editingSubtaskId !== sub.id && (
                       <button
                         onClick={() => { setEditingSubtaskId(sub.id); setEditingSubtaskTitle(sub.title) }}
-                        className="opacity-0 group-hover/sub:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] hover:underline text-xs leading-none cursor-pointer"
+                        className="opacity-0 group-hover/sub:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] leading-none cursor-pointer flex items-center justify-center"
                         aria-label="Edit subtask"
                       >
-                        ✎
+                        <EditIcon size={10} />
                       </button>
                     )}
                     {editingSubtaskId !== sub.id && (
                       <button
                         onClick={() => deleteSubtask(sub.id)}
-                        className="opacity-0 group-hover/sub:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] hover:underline text-base leading-none cursor-pointer"
+                        className="opacity-0 group-hover/sub:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] leading-none cursor-pointer flex items-center justify-center"
                         aria-label="Delete subtask"
                       >
-                        ×
+                        <XIcon size={10} />
                       </button>
                     )}
                   </div>

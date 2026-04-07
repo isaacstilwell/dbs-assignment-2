@@ -17,6 +17,10 @@ export interface Task {
   createdAt: string        // ISO datetime string
 }
 
-// Planner: dayKey = 'YYYY-MM-DD', value = ordered list of taskIds for that day
-export type PlannerDay = string[]
-export type PlannerData = Record<string, PlannerDay>
+// Planner: dayKey = 'YYYY-MM-DD'
+// subtaskIds: null = whole-task drag (show all subtasks live); string[] = specific subtasks only
+export interface PlannerEntry {
+  taskId: string
+  subtaskIds: string[] | null
+}
+export type PlannerData = Record<string, PlannerEntry[]>

@@ -37,7 +37,7 @@ export default function WeeklyPlanner({ onEditById }: WeeklyPlannerProps) {
               key={dayKey}
               date={date}
               dayKey={dayKey}
-              taskIds={planner[dayKey] ?? []}
+              entries={planner[dayKey] ?? []}
               onEdit={onEditById}
             />
           )

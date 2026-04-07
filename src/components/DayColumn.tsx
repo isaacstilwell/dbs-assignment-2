@@ -3,15 +3,16 @@
 import { useDroppable } from '@dnd-kit/core'
 import PlannerTaskChip from './PlannerTaskChip'
 import { formatDayLabel, isToday } from '@/lib/dates'
+import type { PlannerEntry } from '@/types'
 
 interface DayColumnProps {
   date: Date
   dayKey: string
-  taskIds: string[]
+  entries: PlannerEntry[]
   onEdit: (taskId: string) => void
 }
 
-export default function DayColumn({ date, dayKey, taskIds, onEdit }: DayColumnProps) {
+export default function DayColumn({ date, dayKey, entries, onEdit }: DayColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `day-${dayKey}`,
     data: { type: 'day', dayKey },
@@ -47,11 +48,12 @@ export default function DayColumn({ date, dayKey, taskIds, onEdit }: DayColumnPr
           isOver ? 'bg-[rgba(109,189,175,0.05)]' : ''
         }`}
       >
-        {taskIds.map((taskId) => (
+        {entries.map((entry) => (
           <PlannerTaskChip
-            key={`${dayKey}-${taskId}`}
-            taskId={taskId}
+            key={`${dayKey}-${entry.taskId}`}
+            taskId={entry.taskId}
             dayKey={dayKey}
+            subtaskIds={entry.subtaskIds}
             onEdit={onEdit}
           />
         ))}
