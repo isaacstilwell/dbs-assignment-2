@@ -24,3 +24,10 @@ export interface PlannerEntry {
   subtaskIds: string[] | null
 }
 export type PlannerData = Record<string, PlannerEntry[]>
+
+export interface CalendarEvent {
+  id: string
+  title: string
+  date: string   // 'YYYY-MM-DD'
+  notes: string
+}

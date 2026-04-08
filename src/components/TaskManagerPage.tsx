@@ -149,9 +149,8 @@ export default function TaskManagerPage({ initialModal }: TaskManagerPageProps) 
       onDragEnd={handleDragEnd}
     >
       <div className="min-h-screen px-6 py-6 flex flex-col gap-10 max-w-[1600px] mx-auto">
-        {/* Top bar */}
-        <div className="flex items-center justify-between border-b-2 border-[var(--border)] pb-4">
-          <span className="text-sm tracking-[0.3em]">TASK LIST</span>
+        {/* New task button */}
+        <div className="flex justify-end">
           <button
             onClick={openCreate}
             className="text-[10px] tracking-widest px-3 py-1.5 border border-[var(--accent)] text-[var(--accent)] cursor-pointer hover:bg-[var(--card-bg)] hover:underline hover:shadow-[0_0_12px_rgba(110,204,216,0.4)]"
