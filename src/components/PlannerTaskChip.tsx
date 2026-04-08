@@ -66,7 +66,7 @@ export default function PlannerTaskChip({ taskId, dayKey, subtaskIds, onEdit }: 
         <span
           {...attributes}
           {...listeners}
-          className="text-[var(--text-dim)] text-base shrink-0 select-none leading-none cursor-grab mt-0.5"
+          className="hidden md:inline text-[var(--text-dim)] text-base shrink-0 select-none leading-none cursor-grab mt-0.5"
         >
           ⠿
         </span>

@@ -58,10 +58,10 @@ export default function ArchivePage() {
 
       {/* Table header */}
       {completedTasks.length > 0 && (
-        <div className="grid grid-cols-[1fr_80px_80px_24px] gap-3 px-2 pb-1 border-b border-[var(--border-dim)]">
+        <div className="grid grid-cols-[1fr_24px] md:grid-cols-[1fr_80px_80px_24px] gap-3 px-2 pb-1 border-b border-[var(--border-dim)]">
           <span className="text-[9px] tracking-widest opacity-40">TITLE</span>
-          <span className="text-[9px] tracking-widest opacity-40">DUE</span>
-          <span className="text-[9px] tracking-widest opacity-40">SUBTASKS</span>
+          <span className="hidden md:block text-[9px] tracking-widest opacity-40">DUE</span>
+          <span className="hidden md:block text-[9px] tracking-widest opacity-40">SUBTASKS</span>
           <span />
         </div>
       )}
@@ -82,7 +82,7 @@ export default function ArchivePage() {
             return (
               <div
                 key={task.id}
-                className="grid grid-cols-[1fr_80px_80px_24px] gap-3 items-center px-2 py-2 border-b border-[var(--border-dim)] group hover:bg-[var(--card-bg)]"
+                className="grid grid-cols-[1fr_24px] md:grid-cols-[1fr_80px_80px_24px] gap-3 items-center px-2 py-2 border-b border-[var(--border-dim)] group hover:bg-[var(--card-bg)]"
               >
                 <button
                   onClick={() => router.push(`/edit/${task.id}`)}
@@ -90,8 +90,8 @@ export default function ArchivePage() {
                 >
                   <span className="struck opacity-40">{task.title}</span>
                 </button>
-                <span className="text-[10px] text-[var(--text-dim)]">{formatDue(task.dueDate)}</span>
-                <span className="text-[10px] text-[var(--text-dim)]">
+                <span className="hidden md:block text-[10px] text-[var(--text-dim)]">{formatDue(task.dueDate)}</span>
+                <span className="hidden md:block text-[10px] text-[var(--text-dim)]">
                   {taskSubtasks.length > 0 ? `${doneCount}/${taskSubtasks.length}` : '—'}
                 </span>
                 <button
@@ -124,7 +124,7 @@ export default function ArchivePage() {
           onClick={() => setConfirming(false)}
         >
           <div
-            className="w-full max-w-sm border border-[var(--border)] bg-[var(--bg)] p-6 flex flex-col gap-4"
+            className="w-full max-w-sm mx-4 md:mx-auto border border-[var(--border)] bg-[var(--bg)] p-6 flex flex-col gap-4"
             style={{ backgroundColor: '#050f0e' }}
             onClick={(e) => e.stopPropagation()}
           >

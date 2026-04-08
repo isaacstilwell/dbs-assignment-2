@@ -18,7 +18,7 @@ import { usePlannerStore } from '@/store/planner'
 import { useEventStore } from '@/store/events'
 import EventModal from './EventModal'
 import { toDayKey, formatDueDate } from '@/lib/dates'
-import { XIcon } from './icons'
+import { XIcon, ArrowRightIcon } from './icons'
 import type { Task, CalendarEvent } from '@/types'
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
@@ -43,7 +43,7 @@ function DoingCard({ task }: { task: Task }) {
       {/* Title row */}
       <div className="flex items-start justify-between gap-3">
         <span className="text-sm leading-snug flex-1">{task.title}</span>
-        <div className="flex gap-1 shrink-0">
+        <div className="flex flex-wrap gap-1 shrink-0">
           <button
             onClick={() => updateTask(task.id, { status: 'todo' })}
             className="text-[10px] tracking-wider text-[var(--text-dim)] hover:text-[var(--accent)] border border-[var(--border-dim)] hover:border-[var(--accent)] px-2 py-1 cursor-pointer"
@@ -104,7 +104,7 @@ function DoingCard({ task }: { task: Task }) {
 
 // ── Draggable TODO row ────────────────────────────────────────────────────────
 
-function TodoRow({ task }: { task: Task }) {
+function TodoRow({ task, onMoveToDoing }: { task: Task; onMoveToDoing: () => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
     data: { type: 'todo-row', taskId: task.id },
@@ -119,7 +119,7 @@ function TodoRow({ task }: { task: Task }) {
       <span
         {...attributes}
         {...listeners}
-        className="text-[var(--text-dim)] text-base shrink-0 select-none cursor-grab leading-none"
+        className="hidden md:inline text-[var(--text-dim)] text-base shrink-0 select-none cursor-grab leading-none"
       >
         ⠿
       </span>
@@ -127,6 +127,13 @@ function TodoRow({ task }: { task: Task }) {
       {task.dueDate && (
         <span className="text-[10px] opacity-30 shrink-0">{formatDueDate(task.dueDate)}</span>
       )}
+      <button
+        onClick={onMoveToDoing}
+        className="md:hidden flex items-center gap-1.5 text-[9px] tracking-wider px-2 py-1 border border-[var(--border-dim)] text-[var(--text-dim)] hover:border-[var(--accent)] hover:text-[var(--accent)] cursor-pointer shrink-0"
+      >
+        <ArrowRightIcon size={9} />
+        DOING
+      </button>
     </div>
   )
 }
@@ -199,7 +206,9 @@ function SessionView({ todayTaskIds }: { todayTaskIds: Set<string> }) {
               <span className="text-[9px] opacity-30">{todoTasks.length} REMAINING</span>
             </div>
             <div className="flex flex-col">
-              {todoTasks.map((task) => <TodoRow key={task.id} task={task} />)}
+              {todoTasks.map((task) => (
+                <TodoRow key={task.id} task={task} onMoveToDoing={() => updateTask(task.id, { status: 'doing' })} />
+              ))}
             </div>
           </div>
         )}
@@ -248,7 +257,7 @@ export default function TodayPage() {
   return (
     <div className="px-6 py-6 max-w-[900px] mx-auto">
       {/* Header row: date + timer */}
-      <div className="flex items-center justify-between border-b border-[var(--border-dim)] pb-4 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-dim)] pb-4 mb-6">
         <span className="text-sm tracking-[0.25em]">{dateLabel}</span>
         <div className="flex items-center gap-4">
           <button

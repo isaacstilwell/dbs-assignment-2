@@ -25,6 +25,27 @@ export function XIcon({ size = 10, className = '' }: IconProps) {
   )
 }
 
+// Right-pointing arrow — move / promote actions.
+// Horizontal shaft + mitered arrowhead, square linecaps throughout.
+export function ArrowRightIcon({ size = 10, className = '' }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 10 10"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* Shaft */}
+      <line x1="1" y1="5" x2="7.5" y2="5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" />
+      {/* Arrowhead */}
+      <polyline points="5,2 8.5,5 5,8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter" fill="none" />
+    </svg>
+  )
+}
+
 // Angular pen icon — edit actions.
 // Diagonal barrel (outlined parallelogram) + filled nib point, no curves.
 export function EditIcon({ size = 10, className = '' }: IconProps) {

@@ -87,7 +87,7 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="w-full max-w-lg border border-[var(--border)] bg-[var(--bg)]"
+        className="w-full max-w-lg mx-4 md:mx-auto border border-[var(--border)] bg-[var(--bg)]"
         style={{ backgroundColor: '#050f0e' }}
       >
         {/* Header */}

@@ -54,7 +54,7 @@ export default function EventModal({ event, defaultDate, onClose }: EventModalPr
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="w-full max-w-md border border-[var(--border)] bg-[var(--bg)]"
+        className="w-full max-w-md mx-4 md:mx-auto border border-[var(--border)] bg-[var(--bg)]"
         style={{ backgroundColor: '#050f0e' }}
       >
         {/* Header */}

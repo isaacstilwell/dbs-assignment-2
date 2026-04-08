@@ -56,7 +56,7 @@ export default function TaskCard({ task, onEdit, isDragging }: TaskCardProps) {
         <span
           {...attributes}
           {...listeners}
-          className={`text-[var(--text-dim)] text-base shrink-0 select-none ${isSortableDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          className={`hidden md:inline text-[var(--text-dim)] text-base shrink-0 select-none ${isSortableDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         >⠿</span>
 
         {/* Title */}

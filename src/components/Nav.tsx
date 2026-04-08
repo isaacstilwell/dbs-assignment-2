@@ -22,8 +22,8 @@ export default function Nav() {
 
   return (
     <nav className="flex items-center justify-between border-b-2 border-[var(--border)] px-6 py-4">
-      <span className="text-sm tracking-[0.3em]">TASK LIST</span>
-      <div className="flex items-center gap-6">
+      <span className="hidden md:inline text-sm tracking-[0.3em]">TASK LIST</span>
+      <div className="flex items-center gap-4 md:gap-6">
         {links.map(({ href, label }) => (
           <Link
             key={href}
