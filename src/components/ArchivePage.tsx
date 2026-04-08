@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTaskStore } from '@/store/tasks'
 import { XIcon } from './icons'
+import TaskModal from './TaskModal'
+import type { Task } from '@/types'
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 
@@ -13,11 +15,19 @@ function formatDue(iso: string | null): string {
   return `${d} ${MONTHS[parseInt(m, 10) - 1]}`
 }
 
-export default function ArchivePage() {
+export default function ArchivePage({ initialModal }: { initialModal?: string }) {
   const router = useRouter()
   const { tasks, subtasks, deleteTask } = useTaskStore()
   const [query, setQuery] = useState('')
   const [confirming, setConfirming] = useState(false)
+  const [modalTask, setModalTask] = useState<Task | null | undefined>(undefined)
+
+  useEffect(() => {
+    if (initialModal) {
+      const task = useTaskStore.getState().tasks[initialModal]
+      if (task) setModalTask(task)
+    }
+  }, [initialModal])
 
   const completedTasks = useMemo(() =>
     Object.values(tasks)
@@ -85,7 +95,7 @@ export default function ArchivePage() {
                 className="grid grid-cols-[1fr_24px] md:grid-cols-[1fr_80px_80px_24px] gap-3 items-center px-2 py-2 border-b border-[var(--border-dim)] group hover:bg-[var(--card-bg)]"
               >
                 <button
-                  onClick={() => router.push(`/edit/${task.id}`)}
+                  onClick={() => router.push(`/archive/edit/${task.id}`)}
                   className="text-xs text-left truncate cursor-pointer hover:text-[var(--accent)]"
                 >
                   <span className="struck opacity-40">{task.title}</span>
@@ -152,6 +162,13 @@ export default function ArchivePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {modalTask !== undefined && (
+        <TaskModal
+          task={modalTask}
+          onClose={() => { setModalTask(undefined); router.push('/archive') }}
+        />
       )}
     </div>
   )

@@ -19,6 +19,7 @@ import { useEventStore } from '@/store/events'
 import EventModal from './EventModal'
 import { toDayKey, formatDueDate } from '@/lib/dates'
 import { XIcon, ArrowRightIcon } from './icons'
+import TaskModal from './TaskModal'
 import type { Task, CalendarEvent } from '@/types'
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
@@ -219,7 +220,7 @@ function SessionView({ todayTaskIds }: { todayTaskIds: Set<string> }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-export default function TodayPage() {
+export default function TodayPage({ initialModal }: { initialModal?: string }) {
   const router = useRouter()
   const { tasks, subtasks, updateTask, updateSubtask } = useTaskStore()
   const { planner } = usePlannerStore()
@@ -233,6 +234,14 @@ export default function TodayPage() {
   const [elapsed, setElapsed] = useState(0)
   const [tab, setTab] = useState<'scheduled' | 'events'>('scheduled')
   const [modalEvent, setModalEvent] = useState<CalendarEvent | null | undefined>(undefined)
+  const [modalTask, setModalTask] = useState<Task | null | undefined>(undefined)
+
+  useEffect(() => {
+    if (initialModal) {
+      const task = useTaskStore.getState().tasks[initialModal]
+      if (task) setModalTask(task)
+    }
+  }, [initialModal])
 
   useEffect(() => {
     if (!running) return
@@ -348,7 +357,7 @@ export default function TodayPage() {
                             <span className={isDone ? 'struck' : ''}>{task.title}</span>
                           </span>
                           <button
-                            onClick={() => router.push(`/edit/${task.id}`)}
+                            onClick={() => router.push(`/today/edit/${task.id}`)}
                             className="opacity-0 group-hover:opacity-100 text-[10px] tracking-wider text-[var(--text-dim)] hover:text-[var(--accent)] cursor-pointer"
                           >
                             EDIT
@@ -425,6 +434,13 @@ export default function TodayPage() {
         <EventModal
           event={modalEvent}
           onClose={() => setModalEvent(undefined)}
+        />
+      )}
+
+      {modalTask !== undefined && (
+        <TaskModal
+          task={modalTask}
+          onClose={() => { setModalTask(undefined); router.push('/today') }}
         />
       )}
     </div>
