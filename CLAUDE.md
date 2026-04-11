@@ -2,7 +2,7 @@
 
 # Task List — Project Overview
 
-A personal task manager with a brutalist / military HUD aesthetic. Built with Next.js App Router, TypeScript, Tailwind v4, and Zustand. All data is stored client-side in `localStorage`; there is no backend.
+A personal task manager with a brutalist / military HUD aesthetic. Built with Next.js App Router, TypeScript, Tailwind v4, and Zustand. Auth via Clerk; data persisted to Supabase (Postgres). Local state is still managed with Zustand; `localStorage` is used as a client-side cache during the migration to the database backend.
 
 ---
 
@@ -27,6 +27,26 @@ A personal task manager with a brutalist / military HUD aesthetic. Built with Ne
 | Styling | Tailwind v4 with CSS custom properties |
 | State | Zustand + `persist` middleware → `localStorage` |
 | Drag & drop | `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` |
+| Auth | Clerk |
+| Database | Supabase (Postgres) |
+
+---
+
+## Auth & Database Setup (already complete — do not redo)
+
+- **Clerk** is integrated: API keys are in `.env.local`, and the Clerk app is connected to the Supabase project via the Clerk–Supabase integration.
+- **Supabase** schema is migrated. The following tables exist in the `public` schema with RLS enabled:
+
+```sql
+tasks         (id, user_id, title, status, due_date, notes, subtask_ids text[], created_at)
+subtasks      (id, user_id, title, done, parent_id)
+calendar_events (id, user_id, title, date, notes)
+planner_entries (user_id, day_key, task_id, subtask_ids text[])  -- PK: (user_id, day_key, task_id)
+```
+
+- `user_id` on every table corresponds to the Clerk user ID.
+- RLS policies still need to be written (restrict each row to its owner), but the tables and RLS flags are in place.
+- The Supabase MCP server is available in this session — DDL and SQL can be applied directly via the MCP tools without going to the Supabase dashboard.
 
 ---
 
