@@ -40,7 +40,7 @@ export function createAuthClient(token: string) {
           return res
         },
       },
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionFromUrl: false },
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     })
   }
   return _authClient

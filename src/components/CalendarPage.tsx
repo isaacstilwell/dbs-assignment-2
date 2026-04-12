@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTaskStore } from '@/store/tasks'
 import { useEventStore } from '@/store/events'
@@ -13,6 +13,8 @@ const MONTHS = [
   'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER',
 ]
 const DOW = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+
+type GCalEvent = { id: string; title: string; date: string; allDay: boolean; url: string }
 
 // Full 7-col grid with leading/trailing days (xl only)
 function buildGrid(year: number, month: number): Date[] {
@@ -80,6 +82,7 @@ function CalendarCell({
   inMonth,
   dayTasks,
   dayEvents,
+  dayGcalEvents,
   expanded,
   onToggleExpanded,
   onCellClick,
@@ -90,6 +93,7 @@ function CalendarCell({
   inMonth: boolean
   dayTasks: { id: string; title: string; status: string }[]
   dayEvents: CalendarEvent[]
+  dayGcalEvents: GCalEvent[]
   expanded: boolean
   onToggleExpanded: () => void
   onCellClick: () => void
@@ -99,6 +103,7 @@ function CalendarCell({
   const allChips = [
     ...dayTasks.map((t) => ({ type: 'task' as const, task: t })),
     ...dayEvents.map((e) => ({ type: 'event' as const, event: e })),
+    ...dayGcalEvents.map((g) => ({ type: 'gcal' as const, gcal: g })),
   ]
   const LIMIT = 3
   const visible = expanded ? allChips : allChips.slice(0, LIMIT)
@@ -127,13 +132,25 @@ function CalendarCell({
           >
             <span className={item.task.status === 'done' ? 'struck' : ''}>{item.task.title}</span>
           </button>
-        ) : (
+        ) : item.type === 'event' ? (
           <button
             key={`event-${item.event.id}`}
             onClick={(e) => { e.stopPropagation(); onEventClick(item.event) }}
             className="w-full text-left text-[9px] px-1 py-0.5 border border-[var(--border-dim)] truncate cursor-pointer hover:border-[var(--accent)]"
           >
             {item.event.title}
+          </button>
+        ) : (
+          <button
+            key={`gcal-${item.gcal.id}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (item.gcal.url) window.open(item.gcal.url, '_blank', 'noopener,noreferrer')
+            }}
+            title={`Google Calendar: ${item.gcal.title}`}
+            className="w-full text-left text-[9px] px-1 py-0.5 border border-dashed border-[var(--border-dim)] truncate cursor-pointer hover:border-[var(--accent)] opacity-75"
+          >
+            {item.gcal.title}
           </button>
         )
       )}
@@ -165,6 +182,11 @@ export default function CalendarPage() {
   const [modalEvent, setModalEvent] = useState<CalendarEvent | null | undefined>(undefined)
   const [newEventDate, setNewEventDate] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  // Google Calendar state
+  const [gcalEvents, setGcalEvents] = useState<GCalEvent[]>([])
+  const [gcalConnected, setGcalConnected] = useState<boolean | null>(null)
+  const [gcalLoading, setGcalLoading] = useState(false)
 
   // xl: full grid with leading/trailing days
   const grid = useMemo(() => buildGrid(viewYear, viewMonth), [viewYear, viewMonth])
@@ -198,6 +220,59 @@ export default function CalendarPage() {
     return map
   }, [events])
 
+  const gcalByDate = useMemo(() => {
+    const map: Record<string, GCalEvent[]> = {}
+    for (const ev of gcalEvents) {
+      if (!ev.date) continue
+      if (!map[ev.date]) map[ev.date] = []
+      map[ev.date].push(ev)
+    }
+    return map
+  }, [gcalEvents])
+
+  const fetchGcalEvents = useCallback(async (year: number, month: number) => {
+    setGcalLoading(true)
+    const from = `${year}-${String(month + 1).padStart(2, '0')}-01`
+    const lastDay = new Date(year, month + 1, 0).getDate()
+    const to = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+    try {
+      const res = await fetch(`/api/google-calendar/events?from=${from}&to=${to}`)
+      if (res.status === 404) {
+        setGcalConnected(false)
+        setGcalEvents([])
+      } else if (res.ok) {
+        const data = await res.json()
+        setGcalConnected(true)
+        setGcalEvents(data.events ?? [])
+      }
+    } catch {
+      // network error — leave state as-is
+    } finally {
+      setGcalLoading(false)
+    }
+  }, [])
+
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchGcalEvents(viewYear, viewMonth)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Re-fetch when month changes (only if already connected)
+  useEffect(() => {
+    if (gcalConnected) {
+      fetchGcalEvents(viewYear, viewMonth)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewYear, viewMonth])
+
+  async function handleDisconnect() {
+    await fetch('/api/google-calendar/disconnect', { method: 'DELETE' })
+    setGcalConnected(false)
+    setGcalEvents([])
+  }
+
   function handleCellClick(dayKey: string) {
     setNewEventDate(dayKey)
     setModalEvent(null)
@@ -218,6 +293,7 @@ export default function CalendarPage() {
       inMonth,
       dayTasks: tasksByDay[dayKey] ?? [],
       dayEvents: eventsByDay[dayKey] ?? [],
+      dayGcalEvents: gcalByDate[dayKey] ?? [],
       expanded: expanded.has(dayKey),
       onToggleExpanded: () => toggleExpanded(dayKey),
       onCellClick: () => handleCellClick(dayKey),
@@ -266,10 +342,42 @@ export default function CalendarPage() {
     )
   }
 
+  // Google Calendar connection controls
+  function GcalControls() {
+    if (gcalConnected === null) return null
+    if (gcalConnected === false) {
+      return (
+        <a
+          href="/api/google-calendar/auth"
+          className="text-[var(--accent)] text-xs tracking-widest border border-[var(--accent)] px-2 py-0.5 hover:underline cursor-pointer"
+        >
+          + CONNECT GOOGLE CALENDAR
+        </a>
+      )
+    }
+    return (
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => fetchGcalEvents(viewYear, viewMonth)}
+          disabled={gcalLoading}
+          className="text-[var(--text-dim)] text-xs tracking-widest hover:text-[var(--accent)] cursor-pointer disabled:opacity-40"
+        >
+          {gcalLoading ? '...' : '↺ REFRESH'}
+        </button>
+        <button
+          onClick={handleDisconnect}
+          className="text-[var(--text-dim)] text-xs tracking-widest hover:text-[var(--accent)] cursor-pointer"
+        >
+          DISCONNECT GCAL
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="px-6 py-6 max-w-[1600px] mx-auto">
 
-      {/* xl: prev/next month arrows */}
+      {/* xl: prev/next month arrows + GCal controls */}
       <div className="hidden xl:flex items-center gap-4 mb-6">
         <button onClick={prevMonth} className="text-[var(--text-dim)] hover:text-[var(--accent)] text-xs tracking-widest cursor-pointer">
           ← PREV
@@ -280,11 +388,17 @@ export default function CalendarPage() {
         <button onClick={nextMonth} className="text-[var(--text-dim)] hover:text-[var(--accent)] text-xs tracking-widest cursor-pointer">
           NEXT →
         </button>
+        <div className="ml-auto">
+          <GcalControls />
+        </div>
       </div>
 
       {/* Mobile: 1 DOW column */}
       <div className="md:hidden">
         <SubNav />
+        <div className="flex justify-end mb-3">
+          <GcalControls />
+        </div>
         <div className="text-[9px] tracking-widest text-[var(--text-dim)] text-center py-1 mb-1">
           {DOW[dayOffset]}
         </div>
@@ -294,6 +408,9 @@ export default function CalendarPage() {
       {/* md: 3 DOW columns */}
       <div className="hidden md:block lg:hidden">
         <SubNav />
+        <div className="flex justify-end mb-3">
+          <GcalControls />
+        </div>
         <div className="grid grid-cols-3 gap-1 mb-1">
           {[0, 1, 2].map((offset) => (
             <div key={offset} className="text-[9px] tracking-widest text-[var(--text-dim)] text-center py-1">
@@ -311,6 +428,9 @@ export default function CalendarPage() {
       {/* lg: 5 DOW columns */}
       <div className="hidden lg:block xl:hidden">
         <SubNav />
+        <div className="flex justify-end mb-3">
+          <GcalControls />
+        </div>
         <div className="grid grid-cols-5 gap-1 mb-1">
           {[0, 1, 2, 3, 4].map((offset) => (
             <div key={offset} className="text-[9px] tracking-widest text-[var(--text-dim)] text-center py-1">
@@ -352,6 +472,12 @@ export default function CalendarPage() {
           <div className="w-3 h-2 border border-[var(--border-dim)]" />
           <span className="text-[9px] text-[var(--text-dim)] tracking-wider">EVENT</span>
         </div>
+        {gcalConnected && (
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-2 border border-dashed border-[var(--border-dim)] opacity-75" />
+            <span className="text-[9px] text-[var(--text-dim)] tracking-wider">GOOGLE CALENDAR</span>
+          </div>
+        )}
         <span className="hidden md:inline text-[9px] text-[var(--text-dim)] tracking-wider ml-2 opacity-50">
           CLICK ANY CELL TO ADD AN EVENT
         </span>
