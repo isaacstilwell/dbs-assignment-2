@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { UserButton, useUser } from '@clerk/nextjs'
 
 const links = [
   { href: '/', label: 'TASKS' },
@@ -12,6 +13,7 @@ const links = [
 
 export default function Nav() {
   const pathname = usePathname()
+  const { isSignedIn, isLoaded } = useUser()
 
   function isActive(href: string) {
     if (href === '/') {
@@ -37,6 +39,18 @@ export default function Nav() {
             {label}
           </Link>
         ))}
+        {isLoaded && (
+          isSignedIn ? (
+            <UserButton />
+          ) : (
+            <Link
+              href="/sign-in"
+              className="text-[10px] tracking-widest text-[var(--text-dim)] hover:text-[var(--accent)] cursor-pointer"
+            >
+              SIGN IN
+            </Link>
+          )
+        )}
       </div>
     </nav>
   )

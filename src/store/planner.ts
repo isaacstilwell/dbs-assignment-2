@@ -7,6 +7,9 @@ import type { PlannerData, PlannerEntry } from '@/types'
 interface PlannerStore {
   planner: PlannerData
 
+  setPlanner: (planner: PlannerData) => void
+  clearPlannerStore: () => void
+
   // Drag whole task to a day — removes task from all other days
   addTaskToDay: (dayKey: string, taskId: string) => void
 
@@ -35,6 +38,9 @@ export const usePlannerStore = create<PlannerStore>()(
   persist(
     (set) => ({
       planner: {},
+
+      setPlanner: (planner) => set({ planner }),
+      clearPlannerStore: () => set({ planner: {} }),
 
       addTaskToDay: (dayKey, taskId) => {
         set((state) => {

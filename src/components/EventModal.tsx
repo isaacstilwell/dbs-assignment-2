@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useEventStore } from '@/store/events'
+import { useDB } from '@/hooks/useDB'
+import {
+  upsertEvent,
+  deleteEvent as dbDeleteEvent,
+} from '@/lib/db'
 import type { CalendarEvent } from '@/types'
 
 interface EventModalProps {
@@ -12,6 +17,7 @@ interface EventModalProps {
 
 export default function EventModal({ event, defaultDate, onClose }: EventModalProps) {
   const { addEvent, updateEvent, deleteEvent } = useEventStore()
+  const { client, userId } = useDB()
 
   const [title, setTitle] = useState(event?.title ?? '')
   const [date, setDate] = useState(event?.date ?? defaultDate ?? '')
@@ -35,8 +41,10 @@ export default function EventModal({ event, defaultDate, onClose }: EventModalPr
     if (!title.trim()) return
     if (event) {
       updateEvent(event.id, { title: title.trim(), date, notes })
+      if (userId) upsertEvent(client, { ...event, title: title.trim(), date, notes }, userId)
     } else {
-      addEvent({ title: title.trim(), date, notes })
+      const newId = addEvent({ title: title.trim(), date, notes })
+      if (userId) upsertEvent(client, { id: newId, title: title.trim(), date, notes }, userId)
     }
     onClose()
   }
@@ -44,6 +52,7 @@ export default function EventModal({ event, defaultDate, onClose }: EventModalPr
   function handleDelete() {
     if (!event) return
     deleteEvent(event.id)
+    if (userId) dbDeleteEvent(client, event.id)
     onClose()
   }
 

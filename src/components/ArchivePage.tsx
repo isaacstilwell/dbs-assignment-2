@@ -3,6 +3,11 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTaskStore } from '@/store/tasks'
+import { useDB } from '@/hooks/useDB'
+import {
+  deleteTask as dbDeleteTask,
+  deleteSubtasksByTask,
+} from '@/lib/db'
 import { XIcon } from './icons'
 import TaskModal from './TaskModal'
 import type { Task } from '@/types'
@@ -18,6 +23,7 @@ function formatDue(iso: string | null): string {
 export default function ArchivePage({ initialModal }: { initialModal?: string }) {
   const router = useRouter()
   const { tasks, subtasks, deleteTask } = useTaskStore()
+  const { client, userId } = useDB()
   const [query, setQuery] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [modalTask, setModalTask] = useState<Task | null | undefined>(undefined)
@@ -40,6 +46,10 @@ export default function ArchivePage({ initialModal }: { initialModal?: string })
   function handleClearAll() {
     for (const task of completedTasks) {
       deleteTask(task.id)
+      if (userId) {
+        dbDeleteTask(client, task.id)
+        deleteSubtasksByTask(client, task.id)
+      }
     }
     setConfirming(false)
   }
@@ -105,7 +115,13 @@ export default function ArchivePage({ initialModal }: { initialModal?: string })
                   {taskSubtasks.length > 0 ? `${doneCount}/${taskSubtasks.length}` : '—'}
                 </span>
                 <button
-                  onClick={() => deleteTask(task.id)}
+                  onClick={() => {
+                    deleteTask(task.id)
+                    if (userId) {
+                      dbDeleteTask(client, task.id)
+                      deleteSubtasksByTask(client, task.id)
+                    }
+                  }}
                   className="text-[var(--text-dim)] hover:text-red-400 cursor-pointer flex items-center justify-center opacity-0 group-hover:opacity-100"
                   aria-label="Delete task"
                 >

@@ -19,6 +19,10 @@ interface TaskStore {
   addSubtask: (parentId: string, title: string) => string
   updateSubtask: (id: string, patch: Partial<Pick<Subtask, 'title' | 'done'>>) => void
   deleteSubtask: (id: string) => void
+
+  setTasks: (tasks: Record<string, Task>) => void
+  setSubtasks: (subtasks: Record<string, Subtask>) => void
+  clearTaskStore: () => void
 }
 
 export const useTaskStore = create<TaskStore>()(
@@ -134,6 +138,10 @@ export const useTaskStore = create<TaskStore>()(
           return { subtasks: newSubtasks, tasks: newTasks }
         })
       },
+
+      setTasks: (tasks) => set({ tasks }),
+      setSubtasks: (subtasks) => set({ subtasks }),
+      clearTaskStore: () => set({ tasks: {}, subtasks: {} }),
     }),
     {
       name: 'taskmanager-tasks',

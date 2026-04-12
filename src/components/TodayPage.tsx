@@ -16,6 +16,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { useTaskStore } from '@/store/tasks'
 import { usePlannerStore } from '@/store/planner'
 import { useEventStore } from '@/store/events'
+import { useDB } from '@/hooks/useDB'
+import { upsertTask, upsertSubtask } from '@/lib/db'
 import EventModal from './EventModal'
 import { toDayKey, formatDueDate } from '@/lib/dates'
 import { XIcon, ArrowRightIcon } from './icons'
@@ -36,6 +38,7 @@ function formatElapsed(seconds: number): string {
 
 function DoingCard({ task }: { task: Task }) {
   const { subtasks, updateTask, updateSubtask } = useTaskStore()
+  const { client, userId } = useDB()
   const taskSubtasks = task.subtaskIds.map((id) => subtasks[id]).filter(Boolean)
   const doneCount = taskSubtasks.filter((s) => s.done).length
 
@@ -46,13 +49,19 @@ function DoingCard({ task }: { task: Task }) {
         <span className="text-sm leading-snug flex-1">{task.title}</span>
         <div className="flex flex-wrap gap-1 shrink-0">
           <button
-            onClick={() => updateTask(task.id, { status: 'todo' })}
+            onClick={() => {
+              updateTask(task.id, { status: 'todo' })
+              if (userId) upsertTask(client, useTaskStore.getState().tasks[task.id], userId)
+            }}
             className="text-[10px] tracking-wider text-[var(--text-dim)] hover:text-[var(--accent)] border border-[var(--border-dim)] hover:border-[var(--accent)] px-2 py-1 cursor-pointer"
           >
             DO LATER
           </button>
           <button
-            onClick={() => updateTask(task.id, { status: 'done' })}
+            onClick={() => {
+              updateTask(task.id, { status: 'done' })
+              if (userId) upsertTask(client, useTaskStore.getState().tasks[task.id], userId)
+            }}
             className="text-[10px] tracking-wider text-[var(--text-dim)] hover:text-[var(--accent)] border border-[var(--border-dim)] hover:border-[var(--accent)] px-2 py-1 cursor-pointer"
           >
             DONE
@@ -76,7 +85,10 @@ function DoingCard({ task }: { task: Task }) {
           {taskSubtasks.map((sub) => (
             <div key={sub.id} className="flex items-center gap-2">
               <button
-                onClick={() => updateSubtask(sub.id, { done: !sub.done })}
+                onClick={() => {
+                  updateSubtask(sub.id, { done: !sub.done })
+                  if (userId) upsertSubtask(client, useTaskStore.getState().subtasks[sub.id], userId)
+                }}
                 className={`w-3 h-3 border border-[var(--accent)] shrink-0 flex items-center justify-center cursor-pointer ${
                   sub.done ? 'bg-[var(--accent)] hover:opacity-60' : 'hover:bg-[var(--card-bg)]'
                 }`}
@@ -168,6 +180,7 @@ function DoingZone({ doingTasks }: { doingTasks: Task[] }) {
 
 function SessionView({ todayTaskIds }: { todayTaskIds: Set<string> }) {
   const { tasks, updateTask } = useTaskStore()
+  const { client, userId } = useDB()
 
   const doingTasks = Object.values(tasks).filter((t) => t.status === 'doing')
   const todoTasks = Object.values(tasks).filter(
@@ -176,10 +189,15 @@ function SessionView({ todayTaskIds }: { todayTaskIds: Set<string> }) {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
+  function moveToDoing(taskId: string) {
+    updateTask(taskId, { status: 'doing' })
+    if (userId) upsertTask(client, useTaskStore.getState().tasks[taskId], userId)
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (over?.id === 'doing-zone') {
-      updateTask(active.id as string, { status: 'doing' })
+      moveToDoing(active.id as string)
     }
   }
 
@@ -208,7 +226,7 @@ function SessionView({ todayTaskIds }: { todayTaskIds: Set<string> }) {
             </div>
             <div className="flex flex-col">
               {todoTasks.map((task) => (
-                <TodoRow key={task.id} task={task} onMoveToDoing={() => updateTask(task.id, { status: 'doing' })} />
+                <TodoRow key={task.id} task={task} onMoveToDoing={() => moveToDoing(task.id)} />
               ))}
             </div>
           </div>
@@ -225,6 +243,7 @@ export default function TodayPage({ initialModal }: { initialModal?: string }) {
   const { tasks, subtasks, updateTask, updateSubtask } = useTaskStore()
   const { planner } = usePlannerStore()
   const { events } = useEventStore()
+  const { client, userId } = useDB()
 
   const today = new Date()
   const todayKey = toDayKey(today)
@@ -345,7 +364,10 @@ export default function TodayPage({ initialModal }: { initialModal?: string }) {
                       <div key={entry.taskId} className="flex flex-col border-b border-[var(--border-dim)] py-3 group">
                         <div className="flex items-center gap-3">
                           <button
-                            onClick={() => updateTask(task.id, { status: isDone ? 'todo' : 'done' })}
+                            onClick={() => {
+                              updateTask(task.id, { status: isDone ? 'todo' : 'done' })
+                              if (userId) upsertTask(client, useTaskStore.getState().tasks[task.id], userId)
+                            }}
                             className={`w-4 h-4 border border-[var(--accent)] shrink-0 flex items-center justify-center cursor-pointer ${
                               isDone ? 'bg-[var(--accent)] hover:opacity-60' : 'hover:bg-[var(--card-bg)]'
                             }`}
@@ -368,7 +390,10 @@ export default function TodayPage({ initialModal }: { initialModal?: string }) {
                           return (
                             <div key={sub.id} className="flex items-center gap-3 mt-1.5 pl-7">
                               <button
-                                onClick={() => updateSubtask(sub.id, { done: !subDone })}
+                                onClick={() => {
+                                  updateSubtask(sub.id, { done: !subDone })
+                                  if (userId) upsertSubtask(client, useTaskStore.getState().subtasks[sub.id], userId)
+                                }}
                                 className={`w-3 h-3 border border-[var(--accent)] shrink-0 flex items-center justify-center cursor-pointer ${
                                   subDone ? 'bg-[var(--accent)] hover:opacity-60' : 'hover:bg-[var(--card-bg)]'
                                 }`}

@@ -17,7 +17,9 @@ import WeeklyPlanner from '@/components/WeeklyPlanner'
 import TaskModal from '@/components/TaskModal'
 import { useTaskStore } from '@/store/tasks'
 import { usePlannerStore } from '@/store/planner'
-import type { Task, TaskStatus } from '@/types'
+import { useDB } from '@/hooks/useDB'
+import { upsertTask, syncPlannerDay } from '@/lib/db'
+import type { Task, TaskStatus, PlannerData } from '@/types'
 
 interface TaskManagerPageProps {
   initialModal?: 'new' | string // 'new' = create, string = task ID to edit
@@ -27,6 +29,17 @@ export default function TaskManagerPage({ initialModal }: TaskManagerPageProps) 
   const router = useRouter()
   const { tasks, updateTask } = useTaskStore()
   const { addTaskToDay, addSubtaskToDay, moveEntryToDay, removeFromDay } = usePlannerStore()
+  const { client, userId } = useDB()
+
+  function syncChangedDays(before: PlannerData, after: PlannerData) {
+    if (!userId) return
+    const allDays = new Set([...Object.keys(before), ...Object.keys(after)])
+    for (const day of allDays) {
+      if (JSON.stringify(before[day]) !== JSON.stringify(after[day])) {
+        syncPlannerDay(client, day, after[day] ?? [], userId)
+      }
+    }
+  }
 
   const [modalTask, setModalTask] = useState<Task | null | undefined>(
     initialModal === 'new' ? null : undefined
@@ -79,7 +92,9 @@ export default function TaskManagerPage({ initialModal }: TaskManagerPageProps) 
       if (!task) return
 
       if (overData?.type === 'day') {
+        const plannerBefore = usePlannerStore.getState().planner
         addTaskToDay(overData.dayKey as string, taskId)
+        syncChangedDays(plannerBefore, usePlannerStore.getState().planner)
         return
       }
 
@@ -92,6 +107,7 @@ export default function TaskManagerPage({ initialModal }: TaskManagerPageProps) 
 
       if (targetStatus && targetStatus !== task.status) {
         updateTask(taskId, { status: targetStatus })
+        if (userId) upsertTask(client, useTaskStore.getState().tasks[taskId], userId)
       }
       return
     }
@@ -100,12 +116,14 @@ export default function TaskManagerPage({ initialModal }: TaskManagerPageProps) 
     if (activeData?.type === 'subtask') {
       const { subtaskId, taskId } = activeData as { subtaskId: string; taskId: string }
       if (overData?.type === 'day') {
+        const plannerBefore = usePlannerStore.getState().planner
         addSubtaskToDay(
           overData.dayKey as string,
           taskId,
           subtaskId,
           tasks[taskId]?.subtaskIds ?? []
         )
+        syncChangedDays(plannerBefore, usePlannerStore.getState().planner)
       }
       return
     }
@@ -119,7 +137,9 @@ export default function TaskManagerPage({ initialModal }: TaskManagerPageProps) 
       if (overData?.type === 'day') {
         const toDay = overData.dayKey as string
         if (toDay !== fromDay) {
+          const plannerBefore = usePlannerStore.getState().planner
           moveEntryToDay(fromDay, toDay, taskId, chipSubtaskIds, tasks[taskId]?.subtaskIds ?? [])
+          syncChangedDays(plannerBefore, usePlannerStore.getState().planner)
         }
         return
       }
@@ -127,16 +147,23 @@ export default function TaskManagerPage({ initialModal }: TaskManagerPageProps) 
       if (overData?.type === 'planner-chip') {
         const toDay = overData.dayKey as string
         if (toDay !== fromDay) {
+          const plannerBefore = usePlannerStore.getState().planner
           moveEntryToDay(fromDay, toDay, taskId, chipSubtaskIds, tasks[taskId]?.subtaskIds ?? [])
+          syncChangedDays(plannerBefore, usePlannerStore.getState().planner)
         }
         return
       }
 
       if (overData?.type === 'column') {
+        const plannerBefore = usePlannerStore.getState().planner
         removeFromDay(fromDay, taskId)
+        syncChangedDays(plannerBefore, usePlannerStore.getState().planner)
         updateTask(taskId, { status: overData.status as TaskStatus })
+        if (userId) upsertTask(client, useTaskStore.getState().tasks[taskId], userId)
       } else if (overData?.type === 'task') {
+        const plannerBefore = usePlannerStore.getState().planner
         removeFromDay(fromDay, taskId)
+        syncChangedDays(plannerBefore, usePlannerStore.getState().planner)
       }
     }
   }

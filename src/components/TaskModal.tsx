@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useTaskStore } from '@/store/tasks'
-import type { Task, TaskStatus } from '@/types'
+import { useDB } from '@/hooks/useDB'
+import {
+  upsertTask,
+  upsertSubtask,
+  deleteTask as dbDeleteTask,
+  deleteSubtask as dbDeleteSubtask,
+  deleteSubtasksByTask,
+} from '@/lib/db'
+import type { Task, Subtask, TaskStatus } from '@/types'
 import { XIcon, EditIcon } from './icons'
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
@@ -19,6 +27,7 @@ interface TaskModalProps {
 
 export default function TaskModal({ task, onClose }: TaskModalProps) {
   const { addTask, updateTask, deleteTask, addSubtask, updateSubtask, deleteSubtask, tasks, subtasks: allSubtasks } = useTaskStore()
+  const { client, userId } = useDB()
 
   const [title, setTitle] = useState(task?.title ?? '')
   const [status, setStatus] = useState<TaskStatus>(task?.status ?? 'todo')
@@ -51,19 +60,11 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
   function handleSave() {
     if (!title.trim()) return
     if (task) {
-      updateTask(task.id, {
-        title: title.trim(),
-        status,
-        dueDate: dueDate || null,
-        notes,
-      })
+      updateTask(task.id, { title: title.trim(), status, dueDate: dueDate || null, notes })
+      if (userId) upsertTask(client, useTaskStore.getState().tasks[task.id], userId)
     } else {
-      addTask({
-        title: title.trim(),
-        status,
-        dueDate: dueDate || null,
-        notes,
-      })
+      const newId = addTask({ title: title.trim(), status, dueDate: dueDate || null, notes })
+      if (userId) upsertTask(client, useTaskStore.getState().tasks[newId], userId)
     }
     onClose()
   }
@@ -71,13 +72,37 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
   function handleDelete() {
     if (!task) return
     deleteTask(task.id)
+    if (userId) {
+      dbDeleteTask(client, task.id)
+      deleteSubtasksByTask(client, task.id)
+    }
     onClose()
   }
 
   function handleAddSubtask() {
     if (!newSubtask.trim() || !task) return
-    addSubtask(task.id, newSubtask.trim())
+    const sid = addSubtask(task.id, newSubtask.trim())
+    if (userId) {
+      const state = useTaskStore.getState()
+      upsertSubtask(client, state.subtasks[sid], userId)
+      upsertTask(client, state.tasks[task.id], userId)
+    }
     setNewSubtask('')
+  }
+
+  function handleSaveSubtaskTitle(subId: string) {
+    if (!editingSubtaskTitle.trim()) { setEditingSubtaskId(null); return }
+    updateSubtask(subId, { title: editingSubtaskTitle.trim() })
+    if (userId) upsertSubtask(client, useTaskStore.getState().subtasks[subId], userId)
+    setEditingSubtaskId(null)
+  }
+
+  function handleDeleteSubtask(sub: Subtask) {
+    deleteSubtask(sub.id)
+    if (userId) {
+      dbDeleteSubtask(client, sub.id)
+      upsertTask(client, useTaskStore.getState().tasks[sub.parentId], userId)
+    }
   }
 
   return (
@@ -181,25 +206,14 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
                           value={editingSubtaskTitle}
                           onChange={(e) => setEditingSubtaskTitle(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              if (editingSubtaskTitle.trim()) updateSubtask(sub.id, { title: editingSubtaskTitle.trim() })
-                              setEditingSubtaskId(null)
-                            }
+                            if (e.key === 'Enter') { e.preventDefault(); handleSaveSubtaskTitle(sub.id) }
                             if (e.key === 'Escape') setEditingSubtaskId(null)
                           }}
-                          onBlur={() => {
-                            if (editingSubtaskTitle.trim()) updateSubtask(sub.id, { title: editingSubtaskTitle.trim() })
-                            setEditingSubtaskId(null)
-                          }}
+                          onBlur={() => handleSaveSubtaskTitle(sub.id)}
                           className="flex-1 bg-transparent text-xs border-b border-[var(--accent)] cursor-text"
                         />
                         <button
-                          onMouseDown={(e) => {
-                            e.preventDefault()
-                            if (editingSubtaskTitle.trim()) updateSubtask(sub.id, { title: editingSubtaskTitle.trim() })
-                            setEditingSubtaskId(null)
-                          }}
+                          onMouseDown={(e) => { e.preventDefault(); handleSaveSubtaskTitle(sub.id) }}
                           className="text-[var(--accent)] hover:underline text-xs leading-none cursor-pointer shrink-0"
                           aria-label="Save subtask"
                         >
@@ -222,7 +236,7 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
                     )}
                     {editingSubtaskId !== sub.id && (
                       <button
-                        onClick={() => deleteSubtask(sub.id)}
+                        onClick={() => handleDeleteSubtask(sub)}
                         className="opacity-0 group-hover/sub:opacity-100 text-[var(--text-dim)] hover:text-[var(--accent)] leading-none cursor-pointer flex items-center justify-center"
                         aria-label="Delete subtask"
                       >

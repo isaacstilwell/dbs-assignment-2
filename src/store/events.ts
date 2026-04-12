@@ -10,9 +10,11 @@ function generateId(): string {
 
 interface EventStore {
   events: Record<string, CalendarEvent>
-  addEvent: (e: Omit<CalendarEvent, 'id'>) => void
+  addEvent: (e: Omit<CalendarEvent, 'id'>) => string
   updateEvent: (id: string, patch: Partial<Omit<CalendarEvent, 'id'>>) => void
   deleteEvent: (id: string) => void
+  setEvents: (events: Record<string, CalendarEvent>) => void
+  clearEventStore: () => void
 }
 
 export const useEventStore = create<EventStore>()(
@@ -25,6 +27,7 @@ export const useEventStore = create<EventStore>()(
         set((state) => ({
           events: { ...state.events, [id]: { ...e, id } },
         }))
+        return id
       },
 
       updateEvent: (id, patch) => {
@@ -42,6 +45,9 @@ export const useEventStore = create<EventStore>()(
           return { events: rest }
         })
       },
+
+      setEvents: (events) => set({ events }),
+      clearEventStore: () => set({ events: {} }),
     }),
     {
       name: 'taskmanager-events',
