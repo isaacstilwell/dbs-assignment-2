@@ -2,7 +2,7 @@
 
 # Task List — Project Overview
 
-A personal task manager with a brutalist / military HUD aesthetic. Built with Next.js App Router, TypeScript, Tailwind v4, and Zustand. Auth via Clerk; data persisted to Supabase (Postgres). Local state is still managed with Zustand; `localStorage` is used as a client-side cache during the migration to the database backend.
+A personal task manager with a brutalist / military HUD aesthetic. Built with Next.js App Router, TypeScript, Tailwind v4, and Zustand. Auth via Clerk; data persisted to Supabase (Postgres). Zustand + `localStorage` serve as the client-side state layer; Supabase is the source of truth on login and the write target for all mutations.
 
 ---
 
@@ -32,10 +32,17 @@ A personal task manager with a brutalist / military HUD aesthetic. Built with Ne
 
 ---
 
-## Auth & Database Setup (already complete — do not redo)
+## Auth & Database Setup (complete — do not redo)
 
-- **Clerk** is integrated: API keys are in `.env.local`, and the Clerk app is connected to the Supabase project via the Clerk–Supabase integration.
-- **Supabase** schema is migrated. The following tables exist in the `public` schema with RLS enabled:
+### Clerk
+- `@clerk/nextjs` is installed. Keys are in `.env.local`.
+- `src/proxy.ts` is the middleware file (Next.js 16 uses `proxy.ts`, not `middleware.ts`). It uses `export default clerkMiddleware(...)` — must be a default export or Next.js will throw "adapterFn is not a function".
+- All routes are protected except `/sign-in` and `/sign-up`.
+- `ClerkProvider` wraps the root layout in `src/app/layout.tsx`.
+- `Nav` shows `<UserButton />` when signed in, a SIGN IN link when signed out — uses `useUser()` for conditional rendering (not `SignedIn`/`SignedOut`, which are server-only in Clerk v7).
+
+### Supabase
+The following tables exist in the `public` schema:
 
 ```sql
 tasks         (id, user_id, title, status, due_date, notes, subtask_ids text[], created_at)
@@ -44,9 +51,19 @@ calendar_events (id, user_id, title, date, notes)
 planner_entries (user_id, day_key, task_id, subtask_ids text[])  -- PK: (user_id, day_key, task_id)
 ```
 
-- `user_id` on every table corresponds to the Clerk user ID.
-- RLS policies still need to be written (restrict each row to its owner), but the tables and RLS flags are in place.
-- The Supabase MCP server is available in this session — DDL and SQL can be applied directly via the MCP tools without going to the Supabase dashboard.
+- `user_id` on every table corresponds to the Clerk user ID (`user_xxx...`).
+- **RLS is enabled** on all 4 tables. Policy on each: `(auth.jwt() ->> 'sub') = user_id`.
+- The Supabase MCP server is available — DDL and SQL can be applied directly via MCP tools.
+
+### JWT flow
+- A Clerk JWT template named `"supabase"` is configured in the Clerk dashboard. It is signed with the Supabase **Legacy JWT Secret** (HS256 shared secret, found under Settings → JWT Keys → Legacy JWT Secret tab). The current ECC key is not supported by Clerk's template.
+- `src/lib/supabase.ts` exports a singleton authenticated client (`createAuthClient`) and a plain anon client (`supabase`). The auth client uses a custom fetch that injects the current JWT via `Authorization: Bearer` and **auto-retries once on 401** with a fresh token — no logout required for token expiry.
+- `setTokenGetter` wires Clerk's `getToken({ template: 'supabase' })` into the singleton so the fetch closure can refresh on demand.
+
+### Data flow
+- `src/components/DataProvider.tsx` (mounted in layout, inside `ClerkProvider`) calls `getToken({ template: 'supabase' })` on login, initializes the auth singleton, loads all user data from Supabase, and populates the Zustand stores via bulk setters (`setTasks`, `setSubtasks`, `setEvents`, `setPlanner`).
+- All mutations (create/update/delete tasks, subtasks, events, planner entries) call the Zustand action first (immediate UI update) then fire the matching `src/lib/db.ts` function as a fire-and-forget write to Supabase.
+- `src/hooks/useDB.ts` returns `{ client: getAuthClient(), userId }` synchronously for use at mutation sites.
 
 ---
 
@@ -173,16 +190,19 @@ interface CalendarEvent {
 ### `useTaskStore` — `localStorage: 'taskmanager-tasks'`
 Holds `tasks: Record<string, Task>` and `subtasks: Record<string, Subtask>`.
 Actions: `addTask`, `updateTask`, `deleteTask`, `addSubtask`, `updateSubtask`, `deleteSubtask`.
+Bulk setters (used by DataProvider): `setTasks`, `setSubtasks`, `clearTaskStore`.
 `deleteTask` cascades: removes all child subtasks automatically.
 
 ### `usePlannerStore` — `localStorage: 'taskmanager-planner'`
 Holds `planner: PlannerData`.
 Actions: `addTaskToDay`, `addSubtaskToDay`, `removeFromDay`, `removeSubtaskFromDay`, `moveEntryToDay`.
+Bulk setters: `setPlanner`, `clearPlannerStore`.
 Enforces constraint: each subtask appears on at most one day. Includes a v0→v1 migration (old format stored `string[]` per day; new format stores `PlannerEntry[]`).
 
 ### `useEventStore` — `localStorage: 'taskmanager-events'`
 Holds `events: Record<string, CalendarEvent>`.
-Actions: `addEvent`, `updateEvent`, `deleteEvent`.
+Actions: `addEvent` (returns the new id), `updateEvent`, `deleteEvent`.
+Bulk setters: `setEvents`, `clearEventStore`.
 
 ---
 
@@ -190,7 +210,8 @@ Actions: `addEvent`, `updateEvent`, `deleteEvent`.
 
 | Component | Purpose |
 |---|---|
-| `Nav` | Site-wide navigation bar (TASKS / CALENDAR / TODAY / ARCHIVE) |
+| `Nav` | Site-wide navigation bar + UserButton / SIGN IN (uses `useUser()` for auth state) |
+| `DataProvider` | Loads all user data from Supabase on login; clears stores on logout |
 | `TaskModal` | Create/edit task overlay — title, status, due date, notes, subtasks |
 | `EventModal` | Create/edit calendar event overlay — title, date, notes |
 | `TaskCard` | Draggable kanban card (used in `KanbanColumn`) |
