@@ -5,7 +5,7 @@ import { useEventStore } from '@/store/events'
 import { useDB } from '@/hooks/useDB'
 import { upsertEvent } from '@/lib/db'
 
-type EventbriteResult = {
+type TicketmasterResult = {
   id: string
   title: string
   date: string
@@ -15,19 +15,24 @@ type EventbriteResult = {
   description: string
 }
 
-interface EventbriteModalProps {
+interface TicketmasterModalProps {
   onClose: () => void
 }
 
-export default function EventbriteModal({ onClose }: EventbriteModalProps) {
-  const { addEvent } = useEventStore()
+export default function TicketmasterModal({ onClose }: TicketmasterModalProps) {
+  const { addEvent, events } = useEventStore()
   const { client, userId } = useDB()
 
   const [query, setQuery] = useState('')
   const [location, setLocation] = useState('')
-  const [results, setResults] = useState<EventbriteResult[]>([])
+  const [results, setResults] = useState<TicketmasterResult[]>([])
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [saved, setSaved] = useState<Set<string>>(new Set())
+
+  // URLs already saved to the calendar (persists across modal open/close)
+  const savedUrls = new Set(
+    Object.values(events).map((e) => e.notes).filter(Boolean)
+  )
 
   const queryRef = useRef<HTMLInputElement>(null)
 
@@ -51,7 +56,7 @@ export default function EventbriteModal({ onClose }: EventbriteModalProps) {
     try {
       const params = new URLSearchParams({ q })
       if (location.trim()) params.set('location', location.trim())
-      const res = await fetch(`/api/eventbrite/search?${params}`)
+      const res = await fetch(`/api/ticketmaster/search?${params}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Unknown error')
       setResults(data.events ?? [])
@@ -65,7 +70,7 @@ export default function EventbriteModal({ onClose }: EventbriteModalProps) {
     if (e.key === 'Enter') handleSearch()
   }
 
-  function handleSave(event: EventbriteResult) {
+  function handleSave(event: TicketmasterResult) {
     const notes = [
       event.description,
       event.description ? '' : null,
@@ -97,7 +102,7 @@ export default function EventbriteModal({ onClose }: EventbriteModalProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3 shrink-0">
-          <span className="text-xs tracking-widest opacity-70">SEARCH EVENTBRITE</span>
+          <span className="text-xs tracking-widest opacity-70">SEARCH EVENTS</span>
           <button
             onClick={onClose}
             className="text-[var(--text-dim)] hover:text-[var(--accent)] leading-none cursor-pointer"
@@ -182,10 +187,10 @@ export default function EventbriteModal({ onClose }: EventbriteModalProps) {
               </div>
               <button
                 onClick={() => handleSave(event)}
-                disabled={saved.has(event.id)}
+                disabled={saved.has(event.id) || savedUrls.has(event.url)}
                 className="shrink-0 text-[10px] tracking-wider px-2 py-1 border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--card-bg)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
               >
-                {saved.has(event.id) ? 'SAVED' : 'SAVE'}
+                {saved.has(event.id) || savedUrls.has(event.url) ? 'SAVED' : 'SAVE'}
               </button>
             </div>
           ))}

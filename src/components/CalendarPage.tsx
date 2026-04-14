@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTaskStore } from '@/store/tasks'
 import { useEventStore } from '@/store/events'
 import EventModal from './EventModal'
-import EventbriteModal from './EventbriteModal'
+import TicketmasterModal from './TicketmasterModal'
 import type { CalendarEvent } from '@/types'
 import { toDayKey, isToday } from '@/lib/dates'
 
@@ -353,7 +353,7 @@ export default function CalendarPage() {
         onClick={() => setShowEventbrite(true)}
         className="text-[var(--accent)] text-xs tracking-widest border border-[var(--accent)] px-2 py-0.5 hover:underline cursor-pointer"
       >
-        + SEARCH EVENTBRITE
+        + SEARCH EVENTS
       </button>
     )
   }
@@ -512,7 +512,7 @@ export default function CalendarPage() {
       )}
 
       {showEventbrite && (
-        <EventbriteModal onClose={() => setShowEventbrite(false)} />
+        <TicketmasterModal onClose={() => setShowEventbrite(false)} />
       )}
     </div>
   )
