@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTaskStore } from '@/store/tasks'
 import { useEventStore } from '@/store/events'
 import EventModal from './EventModal'
+import EventbriteModal from './EventbriteModal'
 import type { CalendarEvent } from '@/types'
 import { toDayKey, isToday } from '@/lib/dates'
 
@@ -188,6 +189,9 @@ export default function CalendarPage() {
   const [gcalConnected, setGcalConnected] = useState<boolean | null>(null)
   const [gcalLoading, setGcalLoading] = useState(false)
 
+  // Eventbrite state
+  const [showEventbrite, setShowEventbrite] = useState(false)
+
   // xl: full grid with leading/trailing days
   const grid = useMemo(() => buildGrid(viewYear, viewMonth), [viewYear, viewMonth])
 
@@ -342,6 +346,18 @@ export default function CalendarPage() {
     )
   }
 
+  // Eventbrite search button
+  function EventbriteButton() {
+    return (
+      <button
+        onClick={() => setShowEventbrite(true)}
+        className="text-[var(--accent)] text-xs tracking-widest border border-[var(--accent)] px-2 py-0.5 hover:underline cursor-pointer"
+      >
+        + SEARCH EVENTBRITE
+      </button>
+    )
+  }
+
   // Google Calendar connection controls
   function GcalControls() {
     if (gcalConnected === null) return null
@@ -388,7 +404,8 @@ export default function CalendarPage() {
         <button onClick={nextMonth} className="text-[var(--text-dim)] hover:text-[var(--accent)] text-xs tracking-widest cursor-pointer">
           NEXT →
         </button>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
+          <EventbriteButton />
           <GcalControls />
         </div>
       </div>
@@ -396,7 +413,8 @@ export default function CalendarPage() {
       {/* Mobile: 1 DOW column */}
       <div className="md:hidden">
         <SubNav />
-        <div className="flex justify-end mb-3">
+        <div className="flex justify-end items-center gap-3 mb-3">
+          <EventbriteButton />
           <GcalControls />
         </div>
         <div className="text-[9px] tracking-widest text-[var(--text-dim)] text-center py-1 mb-1">
@@ -408,7 +426,8 @@ export default function CalendarPage() {
       {/* md: 3 DOW columns */}
       <div className="hidden md:block lg:hidden">
         <SubNav />
-        <div className="flex justify-end mb-3">
+        <div className="flex justify-end items-center gap-3 mb-3">
+          <EventbriteButton />
           <GcalControls />
         </div>
         <div className="grid grid-cols-3 gap-1 mb-1">
@@ -428,7 +447,8 @@ export default function CalendarPage() {
       {/* lg: 5 DOW columns */}
       <div className="hidden lg:block xl:hidden">
         <SubNav />
-        <div className="flex justify-end mb-3">
+        <div className="flex justify-end items-center gap-3 mb-3">
+          <EventbriteButton />
           <GcalControls />
         </div>
         <div className="grid grid-cols-5 gap-1 mb-1">
@@ -489,6 +509,10 @@ export default function CalendarPage() {
           defaultDate={newEventDate}
           onClose={() => setModalEvent(undefined)}
         />
+      )}
+
+      {showEventbrite && (
+        <EventbriteModal onClose={() => setShowEventbrite(false)} />
       )}
     </div>
   )
