@@ -4,6 +4,8 @@ import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { useTaskStore } from '@/store/tasks'
 import { usePlannerStore } from '@/store/planner'
+import { useDB } from '@/hooks/useDB'
+import { upsertTask, upsertSubtask } from '@/lib/db'
 import { XIcon, EditIcon } from './icons'
 
 interface PlannerTaskChipProps {
@@ -16,6 +18,7 @@ interface PlannerTaskChipProps {
 export default function PlannerTaskChip({ taskId, dayKey, subtaskIds, onEdit }: PlannerTaskChipProps) {
   const { tasks, updateTask, updateSubtask, subtasks: allSubtasks } = useTaskStore()
   const { removeFromDay, removeSubtaskFromDay } = usePlannerStore()
+  const { client, userId } = useDB()
   const task = tasks[taskId]
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -75,7 +78,10 @@ export default function PlannerTaskChip({ taskId, dayKey, subtaskIds, onEdit }: 
         </span>
         <button
           onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => updateTask(taskId, { status: isDone ? 'todo' : 'done' })}
+          onClick={() => {
+            updateTask(taskId, { status: isDone ? 'todo' : 'done' })
+            if (userId) upsertTask(client, useTaskStore.getState().tasks[taskId], userId)
+          }}
           className={`w-3 h-3 border border-[var(--accent)] shrink-0 flex items-center justify-center cursor-pointer transition-colors ${isDone ? 'bg-[var(--accent)] hover:opacity-60' : 'hover:bg-[var(--accent)]'}`}
           style={{ minWidth: '12px' }}
           aria-label={isDone ? 'Mark incomplete' : 'Mark done'}
@@ -102,7 +108,10 @@ export default function PlannerTaskChip({ taskId, dayKey, subtaskIds, onEdit }: 
           </span>
           <button
             onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => updateSubtask(sub.id, { done: !sub.done })}
+            onClick={() => {
+              updateSubtask(sub.id, { done: !sub.done })
+              if (userId) upsertSubtask(client, useTaskStore.getState().subtasks[sub.id], userId)
+            }}
             className={`w-2.5 h-2.5 border border-[var(--accent)] shrink-0 flex items-center justify-center cursor-pointer transition-colors ${sub.done ? 'bg-[var(--accent)] hover:opacity-60' : 'hover:bg-[var(--accent)]'}`}
             style={{ minWidth: '10px' }}
             aria-label={sub.done ? 'Mark incomplete' : 'Mark complete'}

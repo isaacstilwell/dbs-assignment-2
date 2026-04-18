@@ -3,6 +3,8 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { useTaskStore } from '@/store/tasks'
+import { useDB } from '@/hooks/useDB'
+import { upsertSubtask } from '@/lib/db'
 import type { Subtask } from '@/types'
 import { XIcon } from './icons'
 
@@ -12,6 +14,7 @@ interface SubtaskRowProps {
 
 export default function SubtaskRow({ subtask }: SubtaskRowProps) {
   const { updateSubtask, deleteSubtask } = useTaskStore()
+  const { client, userId } = useDB()
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `subtask-${subtask.id}`,
@@ -34,7 +37,10 @@ export default function SubtaskRow({ subtask }: SubtaskRowProps) {
       </span>
       <button
         onPointerDown={(e) => e.stopPropagation()}
-        onClick={() => updateSubtask(subtask.id, { done: !subtask.done })}
+        onClick={() => {
+          updateSubtask(subtask.id, { done: !subtask.done })
+          if (userId) upsertSubtask(client, useTaskStore.getState().subtasks[subtask.id], userId)
+        }}
         className={`w-3 h-3 border border-[var(--accent)] shrink-0 flex items-center justify-center cursor-pointer transition-colors ${subtask.done ? 'bg-[var(--accent)] hover:opacity-60' : 'hover:bg-[var(--accent)]'}`}
         style={{ minWidth: '12px' }}
         aria-label={subtask.done ? 'Mark incomplete' : 'Mark complete'}
